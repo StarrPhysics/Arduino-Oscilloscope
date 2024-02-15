@@ -5,9 +5,7 @@
   - 10 bits
 */
 
-uint8_t setAnalogPins[] = {A0, A1, A14};
-const uint8_t numAnalogPins = sizeof(setAnalogPins) / sizeof(uint8_t);
-
+#include "./ArduinoOscilloscope.h"
 
 /*
   seralDataReponse if setAnalogPins = {A0}:
@@ -15,12 +13,18 @@ const uint8_t numAnalogPins = sizeof(setAnalogPins) / sizeof(uint8_t);
 
 
 void setup() {
+  ArduinoOscilloscope instance = StartAnalogPinOsilloscope(A0, 9600);
+
+  instance.establishConnection();
+
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  // Serial.begin(9600);
 }
 
 void loop()
 {
+  /*
+  
   String serialResponse = "{";
 
 
@@ -31,4 +35,6 @@ void loop()
   }
   
   Serial.println(serialResponse);
+  */
+  
 }

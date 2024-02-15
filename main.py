@@ -1,5 +1,9 @@
 import serial # https://pyserial.readthedocs.io/en/latest/pyserial.html
+from serial.tools.list_ports import comports as getPortInfo
+from serial.tools.list_ports_common import ListPortInfo
+
 import random
+import os
 import json
 import time
 from multiprocessing import Process, Queue
@@ -23,15 +27,19 @@ def openSerialPortStream(queue: Queue) -> None:
     
     lastRecordedTime: float = 0
 
-    ser = serial.Serial()
-    ser.port = 'COM3'
-    ser.baudrate = 9600
-    ser.open()
-    print(ser.name)
-    ser.flushInput()
+    avaliablePorts: list[ListPortInfo] = getPortInfo()
 
-    while ser.in_waiting == 0: # Empties Queue for latest value
-        continue
+    print('Scanning Ports...')
+    for portInfo in avaliablePorts:
+            if (manufacturer := portInfo.manufacturer) == None:
+                continue
+                
+            if manufacturer.find('Arduino') >= 0:
+                print('Found Arduino Port!')
+                serialPortStream(portInfo, queue)
+                return
+    print('No Arduino Port Found')    
+    exit(0)
     
     while True:
         loopStartTime = datetime.datetime.now()
@@ -40,87 +48,101 @@ def openSerialPortStream(queue: Queue) -> None:
             # Read the data from the serial port
             # Incoming data example: '{"A0": "1.23", "A1": "1.35"}'
             pinData = json.loads(re.sub("\\r+|\s+|\\n+", "", ser.readline().decode('utf-8'))) 
-            
         except UnicodeDecodeError:
             continue
         
-        while not queue.empty(): # Empty the queue for the latest data
-                _ = queue.get()
 
         processingTime      = float((datetime.datetime.now() - loopStartTime).microseconds*1e-6) # Seconds
         processingFrequency = 1.0 / processingTime # Hertz
 
         queue.put(queueDataStructure(pinData, {'processingTime': processingTime, 'processingFrequency': processingFrequency}))
 
+def serialPortStream(portInfo: ListPortInfo, queue: Queue) -> None:
+    print(f'Attempting to connect to port "{portInfo.device}"...')
+    ser = serial.Serial()
+    ser.port = portInfo.device
+
+    ser.baudrate = 9600
+    ser.open()
+    #ser.flushInput()
+    print(f'Connected to port "{portInfo.device}"!')
+
+
+    while True:
+        
+        
+
+    """
+    #ser.flushInput()
+
+    while True:
+        print('_______')
+        print(ser.in_waiting)
+        if ser.in_waiting > 0:
+            x = ' '.join(format(ord(x), 'b') for x in ser.readline().decode('utf-8'))
+            print(x)
+        #print(s)
+        
+        #ser.write(b'Testing 1 2 3')
+    """
+
 # The following functions interact with Matplotlib.animation in order to create the display
 # They are the consumers in the queue pipeline.
 
-# Function which initializes the structure of 'APinRecord' in order
-# to be ready for furthur incoming data from the serial port.
-def init():
-    for pinName, pinValue in inialData.pinData.items():
-        print()
-        line2D, = display.plot([0], [pinValue])
-        line2D.set_label(pinName)
-        pinData[pinName] = line2D
-    
-    # https://matplotlib.org/stable/api/_as_gen/matplotlib.lines.Line2D.html
-    # Needed for operations on line2Ds ^^^
-    return pinData
 
-def animate(i, queue: Queue):
-    serialData: queueDataStructure = queue.get()
-    global timeDataPoints
-
-    timeDataPoints.append(round(timeDataPoints[-1] + serialData.miscData['processingTime'] * 1000, 2))
-    
-    if len(timeDataPoints) > 25:
-        timeDataPoints = timeDataPoints[1:]
-
-    for pinName, Line2D in pinData.items():
-        voltageDataPoints = np.append(Line2D.get_data()[1], serialData.pinData[pinName])
-
-        if len(voltageDataPoints) > 25:
-            voltageDataPoints = voltageDataPoints[1:]
-        
-        display.set_xlim(min(timeDataPoints), max(timeDataPoints))
-        display.set_ylim(0, 5)
-        display.legend(loc="upper right")
-
-        pinData[pinName].set_data(timeDataPoints, voltageDataPoints)
-    print(f'Loop {i}')
-    
-    return pinData
 # Function which initalizes some important global variables (in its own subprocess scope)
 # and sets up the basic properties of the plot.
 def beginAnimation(queue: Queue):
-    global fig, display, pinData, inialData, timeDataPoints
-
-    inialData= queue.get()
-
-    pinData = {}
-    timeDataPoints = [0]
-
     style.use('fivethirtyeight')
-
     fig     = plt.figure()
-    display = fig.add_subplot(1,1,1)
-    display.set_title('Arduino Serial Plotter')
+    ax = fig.add_subplot(1,1,1)
+    ax.set_title('Arduino Serial Plotter')
 
-    processingInterval = int(round(inialData.miscData['processingTime'] * 1000, 1)) # Milliseconds
+    serialData: queueDataStructure = queue.get()
+    
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 5)
 
-    ani = animation.FuncAnimation(fig, animate, fargs=(queue,), interval=10, init_func=init, blit=False, cache_frame_data=False)
+    artists: list[plt.Line2D] = [
+         ax.plot(
+                np.arange(0,1,1/50),
+                [Voltage]*50,
+                label=pinName,
+                #color = 'blue' if simObject.isStatic else 'red',
+                linewidth = 1
+                )[0]
+    for (pinName, Voltage) in serialData.pinData.items()]
+
+    ax.legend(loc="upper right")
+
+    def animate(i):
+        serialData = queue.get()
+        for artist in artists:
+            voltage = serialData.pinData[artist.get_label()]
+            
+            y = artist.get_ydata()
+
+            y[i % 50] = voltage
+
+            artist.set_ydata(y)
+        return artists
+
+    ani = animation.FuncAnimation(fig, animate, interval=0, blit=True, cache_frame_data=False)
     plt.show()
-
 
 # Main
 if __name__=='__main__':
+    
     serialDataQueue = Queue(maxsize=1)
-
+    
     p1 = Process(target = openSerialPortStream, args=(serialDataQueue,))
     p1.start()
-    p2 = Process(target = beginAnimation, args=(serialDataQueue,))
-    p2.start()
+    
+    #p2 = Process(target = beginAnimation, args=(serialDataQueue,))
+    #p2.start()
 
     p1.join()
-    p2.join()
+    #p2.join()
+        
+
+    
