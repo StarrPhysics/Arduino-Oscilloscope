@@ -1,50 +1,50 @@
 #include "Arduino.h"
 #include "ArduinoOscilloscope.h"
 
-ArduinoOscilloscope::ArduinoOscilloscope(int pin, String pinName, int baud) {
-    _pin = pin;
-    _pinName = pinName;
-    _baud = baud;
-}
-
 void ArduinoOscilloscope::establishConnection() {
     Serial.begin(_baud); // https://www.arduino.cc/reference/en/language/functions/communication/serial/
-    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(13, INPUT);
 
-    while (true) {
-        if (_test_connection() == true) { return; }
-        delay(100);
-    } 
-        
-}
-
-bool ArduinoOscilloscope::_test_connection() {
-    // Serial.println('Test');
-    while (true) {
-        //if (Serial.available() > 0) {
-            digitalWrite(LED_BUILTIN, HIGH);
-            //int message = Serial.read();
-            Serial.write(49);
-            Serial.write(10);
-            Serial.write(50);
-            Serial.write(10);
-            Serial.write(51);
-            Serial.write(10);
-            delay(1000);
-        //}
-        digitalWrite(LED_BUILTIN, LOW);
-        continue;
-        
-
-        //Serial.print("I received: ");
-        //Serial.println(byte, DEC);
+    for (int i = 0; i < sizeof(_pins); i++) {
+        if (_pins[i] != 0)
+        pinMode(_pins[i], INPUT);
     }
 
-    //Serial.read(); //https://www.arduino.cc/reference/en/language/functions/communication/serial/
+    while (true) {
+        // Calls out for handshake response
+        Serial.println("Arduino;ArduinoOscilloscope_Handshake;" + _pinNames);
+
+        delay(500);
+
+        if (Serial.available() > 0) {
+            
+            String str = Serial.readString();
+
+            // Breaks if handshake response is acknowledged.
+            if (str.startsWith("Client;ArduinoOscilloscope_Handshake")) break;
+        }
+    }
+
+    Serial.println("Arduino;Confirmed");
+    // Sends post-acknowledgment confirmation.
+    // Program is ready to begin.    
 }
 
 
 void ArduinoOscilloscope::sendPinData() {
-
+    // Function must be recursivly called in loop.
+    for (int i = 0; i < sizeof(_pins); i++) {
+        if (_pins[i] != 0) {
+            Serial.write(analogRead(_pins[i]));
+            Serial.write(10);
+        }
+    }
 }
 
+template<typename T, typename... Rest>
+void ArduinoOscilloscope::processArgs(int i, T arg, Rest... rest) {
+    _pins[i] = arg;
+    processArgs(i++, rest...);
+};
+
+void ArduinoOscilloscope::processArgs() {};
