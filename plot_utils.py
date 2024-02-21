@@ -6,9 +6,12 @@ import numpy as np
 import random
 
 def animate(i, queue: Queue, artists: list[plt.Line2D]):
-        # serialData = queue.get()
+
+        serialDataArray = queue.get()
+
+        print(serialDataArray)
+
         for artist in artists:
-            #voltage = serialData.pinData[artist.get_label()]
             
             y = artist.get_ydata()
             y[i % 50] = random.uniform(0.0, 5.0)

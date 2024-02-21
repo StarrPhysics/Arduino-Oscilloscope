@@ -9,11 +9,11 @@ if __name__=='__main__':
     serialProcess = Process(target = serial_utils.main, args=(queue,))
     serialProcess.start()
     
-    #plotterProcess = Process(target = plot_utils.main, args=(queue,))
-    #plotterProcess.start()
+    plotterProcess = Process(target = plot_utils.main, args=(queue,))
+    plotterProcess.start()
 
     serialProcess.join()
-    #plotterProcess.join()
+    plotterProcess.join()
         
 
     

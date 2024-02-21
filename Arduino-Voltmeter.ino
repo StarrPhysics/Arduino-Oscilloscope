@@ -1,6 +1,6 @@
 #include "./ArduinoOscilloscope.h"
 
-ArduinoOscilloscope instance = InitalizeArduinoOscilloscope(9600,A1,A2,A3,A4);
+ArduinoOscilloscope instance = InitalizeArduinoOscilloscope(9600,A14);
 
 void setup() {
   instance.establishConnection();

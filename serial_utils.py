@@ -1,6 +1,7 @@
 from multiprocessing import Queue
 import time
 import re
+import numpy as np
 from typing import Union
 from serial import Serial
 
@@ -25,22 +26,21 @@ def readLine_managed(serial: Serial,*, strip: bool = True, decode: str = None, l
 
     serialBuffer: bytes = b''
 
-    i = 0
-
     # Gathers to 'serialBuffer' until the endline character is detected
-    while True if looplimit is None else i < looplimit:
+    while True:
         if serial.in_waiting > 0:
-            serialBuffer += serial.read_all()
-            if serialBuffer[-1] == 10:
-                break
-        i += 1
+            serialBuffer += serial.read_all().strip().split(b'\n')
+            
+    
+            
     
     if strip: serialBuffer = serialBuffer.strip()
 
-    return serialBuffer.split(b'\n') if decode is None else serialBuffer.decode(decode).split('\n')
-
-
-
+    try:
+        return serialBuffer.split(b'\n') if decode is None else serialBuffer.decode(decode, errors="ignore").split('\n')
+    except UnicodeDecodeError: # Occassionally, the serial port will return a string that is not decodable. If that's the case, the function will be called again. Usually, its a one in a hundred occurance.
+        #print(serialBuffer.split(b'\n'))
+        print("Errrr")
 
 def find_ardueno_serial_port() -> PortInfo:
     """
@@ -86,9 +86,11 @@ def establish_serial_port_connection(portInfo: PortInfo, queue: Queue) -> Serial
 
     # Establish Handshake with Ardueno Program
     while True:
-        incommingMessage: str = readLine_managed(ser, strip=True, decode='utf-8')[-1]
-
-        sender, messageType, *pins = re.split(';|,', incommingMessage)
+        parsedMessage: list[str] = re.split(';|,', readLine_managed(ser, strip=True, decode='utf-8')[-1])
+        
+        if len(parsedMessage) < 3: continue
+        
+        sender, messageType, *pins = parsedMessage
 
         if sender == 'Arduino' and messageType == 'ArduinoOscilloscope_Handshake': 
             print('Recieved Handshake from Ardueno')
@@ -129,11 +131,22 @@ def establish_serial_port_connection(portInfo: PortInfo, queue: Queue) -> Serial
     pass
 
 def runtime_data_stream_manager(ser: Serial, queue: Queue) -> None:
+    dataPacketBuffer: list = []
+    
     while True:
-        first7bits, remaining3bits = map(lambda x: x-128,readLine_managed(ser, strip=True)[-1])
-        print(bin(first7bits + (remaining3bits << 7)))
-        #print((first7bits)+(remaining3bits << 7))
-        #print(len(readLine_managed(ser, strip=True)))
+        dataPacketList: list[bytes] = readLine_managed(ser, strip=True)
+
+        """
+        for dataPacket in dataPacketList:
+            if len(dataPacket) != 3: continue # Suggests invalid data packet. Skipping to deal with errors
+            dataPacket = [bit - 128 for bit in dataPacket] # Undoing byte shifting.
+            dataPacketBuffer.append([dataPacket[0], np.round(np.float16(dataPacket[1] + (dataPacket[2]<< 7)) * np.float16(5.0 / 1023.0), 2)])
+        
+        if queue.empty():
+            queue.put(dataPacketBuffer)
+            dataPacketBuffer = []
+        """
+        
 
 
 # Main Function for this Module
