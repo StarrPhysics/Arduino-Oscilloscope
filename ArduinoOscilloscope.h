@@ -1,5 +1,4 @@
 #include <Arduino.h>
-using namespace std;
 
 #ifndef ARDUINO_OSCILLOSCOPE_H
 #define ARDUINO_OSCILLOSCOPE_H
@@ -10,8 +9,7 @@ class ArduinoOscilloscope {
     public:
         template <typename... Args>
         ArduinoOscilloscope(int baud, const char* pinNames, Args... args): _baud(baud), _pinNames(String(pinNames)) {
-            
-            processArgs(0, args...);
+            processArgs(args...);
         };
         
         void establishConnection();
@@ -19,12 +17,18 @@ class ArduinoOscilloscope {
 
     private:
         int _pins[MAX_PINS];
+        bool _connected = false;
         String _pinNames = "";
         int _baud;
+        int _iterator = 0;
 
         template<typename T, typename... Rest>
-        void processArgs(int i, T arg, Rest... rest);
-        void processArgs();
+        void processArgs(T arg, Rest... rest) {
+            _pins[_iterator] = arg;
+            _iterator += 1;
+            processArgs(rest...);
+        };
+        void processArgs() {};
 
 };
 

@@ -8,8 +8,7 @@ from serial.tools.list_ports import comports as getPortInfo
 from serial.tools.list_ports_common import ListPortInfo as PortInfo
 
 
-
-def readLine_managed(serial: Serial, decode: str = None, strip: bool = False, loopLimit: int = None) -> Union[bytes, str]:
+def readLine_managed(serial: Serial,*, strip: bool = True, decode: str = None, looplimit: int = None) -> list[Union[bytes, str]]:
     """
     Pyserial's serial.read methods may return incomplete strings if data is received in chunks.
     This function batches data from the serial port until an endline character is detected.
@@ -23,26 +22,22 @@ def readLine_managed(serial: Serial, decode: str = None, strip: bool = False, lo
     Returns:
         bytes: The data read from the serial port.
     """
-    if decode is None and strip is True: raise ValueError('Cannot strip data if datatype is not string. Please specify a decode type.')
 
     serialBuffer: bytes = b''
 
     i = 0
 
-    while True if loopLimit is None else i < loopLimit:
+    # Gathers to 'serialBuffer' until the endline character is detected
+    while True if looplimit is None else i < looplimit:
         if serial.in_waiting > 0:
             serialBuffer += serial.read_all()
             if serialBuffer[-1] == 10:
                 break
         i += 1
-
-    if decode is not None:
-         if strip:
-             return serialBuffer.decode(decode).strip()
-         else:
-              return serialBuffer.decode(decode)
     
-    return serialBuffer
+    if strip: serialBuffer = serialBuffer.strip()
+
+    return serialBuffer.split(b'\n') if decode is None else serialBuffer.decode(decode).split('\n')
 
 
 
@@ -65,10 +60,6 @@ def find_ardueno_serial_port() -> PortInfo:
             
     print('No Arduino Port Found')    
     exit(0)
-                
-
-
-
 
 def establish_serial_port_connection(portInfo: PortInfo, queue: Queue) -> Serial:
     """
@@ -95,10 +86,9 @@ def establish_serial_port_connection(portInfo: PortInfo, queue: Queue) -> Serial
 
     # Establish Handshake with Ardueno Program
     while True:
-        handshake_data: str = readLine_managed(ser, 'utf-8', True)
-        # Expected to Recieve: 'Arduino;ArduinoOscilloscope_Handshake;A1,A2,A15'
+        incommingMessage: str = readLine_managed(ser, strip=True, decode='utf-8')[-1]
 
-        sender, messageType, *pins = re.split(';|,', handshake_data)
+        sender, messageType, *pins = re.split(';|,', incommingMessage)
 
         if sender == 'Arduino' and messageType == 'ArduinoOscilloscope_Handshake': 
             print('Recieved Handshake from Ardueno')
@@ -107,24 +97,10 @@ def establish_serial_port_connection(portInfo: PortInfo, queue: Queue) -> Serial
     
     print('Responding to Handshake...')
     ser.write(b'Client;ArduinoOscilloscope_Handshake\n') # Lets the Ardueno program know that the python program is ready to receive data
-    time.sleep(0.5)
 
-    while True:
-        if readLine_managed(ser, 'utf-8', strip=True) == 'Arduino;Confirmed':
-            print('Handshake Complete. Proceeding to data stream...')
-            break
     return ser
-
-def runtime_data_stream_manager(ser: Serial, queue: Queue) -> None:
-    dataBuffer: list[list[float]] = []
-
+    
     while True:
-        if ser.in_waiting > 0:
-            print(readLine_managed(ser))
-    
-    #print(' '.join(format(ord(x), 'b') for x in ser.readline().decode('utf-8')))
-    
-    """while True:
         loopStartTime = datetime.datetime.now()
         try:
             # Read the data from the serial port
@@ -135,9 +111,9 @@ def runtime_data_stream_manager(ser: Serial, queue: Queue) -> None:
             
         processingTime      = float((datetime.datetime.now() - loopStartTime).microseconds*1e-6) # Seconds
         processingFrequency = 1.0 / processingTime # Hertz
-        queue.put(queueDataStructure(pinData, {'processingTime': processingTime, 'processingFrequency': processingFrequency}))"""
+        queue.put(queueDataStructure(pinData, {'processingTime': processingTime, 'processingFrequency': processingFrequency}))
 
-    """
+    
     #ser.flushInput()
 
     while True:
@@ -149,8 +125,16 @@ def runtime_data_stream_manager(ser: Serial, queue: Queue) -> None:
         #print(s)
         
         #ser.write(b'Testing 1 2 3')
-    """
+    
     pass
+
+def runtime_data_stream_manager(ser: Serial, queue: Queue) -> None:
+    while True:
+        first7bits, remaining3bits = map(lambda x: x-128,readLine_managed(ser, strip=True)[-1])
+        print(bin(first7bits + (remaining3bits << 7)))
+        #print((first7bits)+(remaining3bits << 7))
+        #print(len(readLine_managed(ser, strip=True)))
+
 
 # Main Function for this Module
 def main(queue: Queue) -> None:
