@@ -29,18 +29,12 @@ def readLine_managed(serial: Serial,*, strip: bool = True, decode: str = None, l
     # Gathers to 'serialBuffer' until the endline character is detected
     while True:
         if serial.in_waiting > 0:
-            serialBuffer += serial.read_all().strip().split(b'\n')
-            
-    
-            
-    
+            serialBuffer += serial.read_all()
+            if b'\n' in serialBuffer: break
+
     if strip: serialBuffer = serialBuffer.strip()
 
-    try:
-        return serialBuffer.split(b'\n') if decode is None else serialBuffer.decode(decode, errors="ignore").split('\n')
-    except UnicodeDecodeError: # Occassionally, the serial port will return a string that is not decodable. If that's the case, the function will be called again. Usually, its a one in a hundred occurance.
-        #print(serialBuffer.split(b'\n'))
-        print("Errrr")
+    return serialBuffer.split(b'\n') if decode is None else serialBuffer.decode(decode, errors="ignore").split('\n')
 
 def find_ardueno_serial_port() -> PortInfo:
     """
