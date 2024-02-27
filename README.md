@@ -12,10 +12,10 @@
 ## Introduction
 This passion-project is an attempt to use the Ardueno's analog pins as a (moderately) viable oscilloscope for studying electrical behavior. The program is built in two parts:
 
-1. A C++ library for operating the Ardueno side of the program.
-2. A python client which communicates with the Ardueno program and plots the data.
+1. A C++ library for operating the Arduino side of the program.
+2. A python client which communicates with the Arduino program and plots the data.
 
-This program was built with an Ardueno MEGA framework in mind, and so manual adjustment might be neccessary depending on the circumstances. Note, this program is not an ideal replacement for an oscilloscope due to the limitations of the unspecialized hardware.
+This program was built with an Arduino MEGA framework in mind, and so manual adjustment might be necessary depending on the circumstances. Note, this program is not an ideal replacement for an oscilloscope due to the limitations of the unspecialized hardware.
 
 <!---
 ## Features
@@ -34,7 +34,7 @@ The python program is built under the following:
 4. [matplotlib v3.8.0](https://matplotlib.org)
 
 ## How to Use
-Here is a bare-minimum example of of how the`ArduinoOscilloscope.cpp` program should be incorperated into your ino file:
+Here is a bare-minimum example of of how the`ArduinoOscilloscope.cpp` program should be incorporated into your ino file:
 ```ino
 #include "./ArduinoOscilloscope.h"
 
@@ -56,4 +56,4 @@ Once these basic methods are placed in their appropriate locations, the python p
 [![Example Video](https://i3.ytimg.com/vi/_zJXhK_8eHc/maxresdefault.jpg)](https://youtu.be/_zJXhK_8eHc)
 
 # Contributing
-Admiditly, the program isn't perfect, and my lack of experience in writting low level code might be a limiting factor; but I'm eager to optamize the project over time so that I can compliment my study of circuits, hardware, and general computer science. Consequentiually, if you have any questions or reccomendations, please raise an issue and let me know if you have any thoughts.
+Admittedly, the program isn't perfect, and my lack of experience in writing low level code might be a limiting factor; but I'm eager to optimize the project over time so that I can complement my study of circuits, hardware, and general computer science. Consequently, if you have any questions or recommendations, please raise an issue and let me know if you have any thoughts.
