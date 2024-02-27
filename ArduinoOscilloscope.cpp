@@ -1,5 +1,9 @@
 #include "Arduino.h"
 #include "ArduinoOscilloscope.h"
+/** Personal Resources:
+ * -> https://docs.arduino.cc/learn/programming/memory-guide/
+ * 
+*/
 
 // This function establishes a connection between the Arduino and the client-python program.
 void ArduinoOscilloscope::establishConnection() {
@@ -19,9 +23,6 @@ void ArduinoOscilloscope::establishConnection() {
             if (Serial.readString().startsWith("Client;ArduinoOscilloscope_Handshake")) break; // Breaks if handshake response is acknowledged.
         }
     }
-
-    Serial.println("Arduino;Confirmed"); // Sends post-acknowledgment confirmation. Although the client dosn't acknowledge this message.
-
     _connected = true;
     
     // Following the execution of this function, the program is ready to begin.    
@@ -44,7 +45,7 @@ void ArduinoOscilloscope::sendPinData() {
 
     if (!_connected) return;
     
-    for (int i = 0; i < _iterator + 1; i++) {
+    for (int i = 0; i < _iterator; i++) {
         int pinValue = analogRead(_pinNumberArray[i]); // Pontains the value on the analog pin ranging from 0 (corresponding to 0 volts) to 1023 (corresponding to 5 volts).
 
         int first7bits = _bitmask & pinValue;
