@@ -53,7 +53,7 @@ Note this is just a copy of the `ArduinoOscilloscope.ino` in the project source.
 
 Once these basic methods are placed in their appropriate locations, the python program can be executed by running the `ArduinoOscilloscope.py` script. Here's an example of the setup process and execution:
 
-![Video](https://youtu.be/_zJXhK_8eHc)
+[![Example Video](https://i3.ytimg.com/vi/_zJXhK_8eHc/maxresdefault.jpg)](https://youtu.be/_zJXhK_8eHc)
 
 # Contributing
 Admiditly, the program isn't perfect, and my lack of experience in writting low level code might be a limiting factor; but I'm eager to optamize the project over time so that I can compliment my study of circuits, hardware, and general computer science. Consequentiually, if you have any questions or reccomendations, please raise an issue and let me know if you have any thoughts.
