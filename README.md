@@ -49,7 +49,7 @@ void loop()
   instance.sendPinData();
 }
 ```
-Note this is just a copy of the `ArduinoOscilloscope.ino` in the project source.
+Note this is just a copy of the `ArduinoOscilloscope.ino` file in the project source. It remains an example of how to implament the library. 
 
 Once these basic methods are placed in their appropriate locations, the python program can be executed by running the `ArduinoOscilloscope.py` script. Here's an example of the setup process and execution:
 
